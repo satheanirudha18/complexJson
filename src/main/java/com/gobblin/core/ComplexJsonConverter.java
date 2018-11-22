@@ -107,13 +107,14 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, JsonObject
                             convertNestedRecord(schema, inputRecord.get(field.name()).getAsJsonObject(), workUnit, ignoreFields));
                 }
             } else {
-                try {
+                avroRecord.put(field.name(), inputRecord.get(field.name()));
+                /*try {
                     converter = JsonElementConversionWithAvroSchemaFactory.getConvertor(field.name(), type.getName(), schema,
                             workUnit, nullable, ignoreFields);
                     avroRecord.put(field.name(), converter.convert(inputRecord.get(field.name())));
                 } catch (Exception e) {
                     throw new DataConversionException("Could not convert field " + field.name(), e);
-                }
+                }*/
             }
         }
         return avroRecord;
