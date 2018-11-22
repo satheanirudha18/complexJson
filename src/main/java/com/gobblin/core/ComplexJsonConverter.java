@@ -63,7 +63,7 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, JsonObject
     public static GenericRecord convertNestedRecord(Schema outputSchema, JsonObject inputRecord, WorkUnitState workUnit,
                                                     List<String> ignoreFields) throws DataConversionException {
         GenericRecord avroRecord = new GenericData.Record(outputSchema);
-        JsonElementConversionWithAvroSchemaFactory.JsonElementConverter converter;
+
         for (Schema.Field field : outputSchema.getFields()) {
 
             if (ignoreFields.contains(field.name())) {
@@ -74,33 +74,12 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, JsonObject
             boolean nullable = false;
             Schema schema = field.schema();
 
-            if (type.equals(Schema.Type.UNION)) {
-                nullable = true;
-                List<Schema> types = field.schema().getTypes();
-                if (types.size() != 2) {
-                    throw new DataConversionException("Unions must be size 2, and contain one null");
-                }
-                if (field.schema().getTypes().get(0).getType().equals(Schema.Type.NULL)) {
-                    schema = field.schema().getTypes().get(1);
-                    type = schema.getType();
-                } else if (field.schema().getTypes().get(1).getType().equals(Schema.Type.NULL)) {
-                    schema = field.schema().getTypes().get(0);
-                    type = schema.getType();
-                } else {
-                    throw new DataConversionException("Unions must be size 2, and contain one null");
-                }
-
-                if (inputRecord.get(field.name()) == null) {
-                    inputRecord.add(field.name(), JsonNull.INSTANCE);
-                }
-            }
-
             if (inputRecord.get(field.name()) == null) {
                 throw new DataConversionException("Field missing from record: " + field.name());
             }
 
             if (type.equals(Schema.Type.RECORD)) {
-                if (nullable && inputRecord.get(field.name()).isJsonNull()) {
+                if (nullable || inputRecord.get(field.name()).isJsonNull()) {
                     avroRecord.put(field.name(), null);
                 } else {
                     avroRecord.put(field.name(),
@@ -108,13 +87,6 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, JsonObject
                 }
             } else {
                 avroRecord.put(field.name(), inputRecord.get(field.name()));
-                /*try {
-                    converter = JsonElementConversionWithAvroSchemaFactory.getConvertor(field.name(), type.getName(), schema,
-                            workUnit, nullable, ignoreFields);
-                    avroRecord.put(field.name(), converter.convert(inputRecord.get(field.name())));
-                } catch (Exception e) {
-                    throw new DataConversionException("Could not convert field " + field.name(), e);
-                }*/
             }
         }
         return avroRecord;
