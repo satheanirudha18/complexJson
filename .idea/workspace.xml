@@ -2,7 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="05327eee-cf99-4c6b-bdc6-cb8c2db9b52d" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/target/classes/com/gobblin/core/ComplexJsonConverter.class" afterPath="$PROJECT_DIR$/target/classes/com/gobblin/core/ComplexJsonConverter.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/target/complex-1.0-SNAPSHOT.jar" afterPath="$PROJECT_DIR$/target/complex-1.0-SNAPSHOT.jar" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/com/gobblin/core/ComplexJsonConverter.java" afterPath="$PROJECT_DIR$/src/main/java/com/gobblin/core/ComplexJsonConverter.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/target/maven-archiver/pom.properties" afterPath="$PROJECT_DIR$/target/maven-archiver/pom.properties" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
     <ignored path="$PROJECT_DIR$/target/" />
@@ -29,8 +33,8 @@
       <file leaf-file-name="ComplexJsonConverter.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/gobblin/core/ComplexJsonConverter.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="198">
-              <caret line="89" column="13" lean-forward="true" selection-start-line="89" selection-start-column="13" selection-end-line="89" selection-end-column="13" />
+            <state relative-caret-position="160">
+              <caret line="68" column="53" lean-forward="false" selection-start-line="68" selection-start-column="53" selection-end-line="68" selection-end-column="53" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -623,8 +627,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/gobblin/core/ComplexJsonConverter.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="198">
-          <caret line="89" column="13" lean-forward="true" selection-start-line="89" selection-start-column="13" selection-end-line="89" selection-end-column="13" />
+        <state relative-caret-position="160">
+          <caret line="68" column="53" lean-forward="false" selection-start-line="68" selection-start-column="53" selection-end-line="68" selection-end-column="53" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>

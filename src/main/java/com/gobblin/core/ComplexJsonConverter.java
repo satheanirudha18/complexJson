@@ -22,6 +22,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonNull;
 import com.google.common.base.Splitter;
 import org.apache.gobblin.converter.avro.JsonElementConversionWithAvroSchemaFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link Converter} that takes an Avro schema from config and corresponding {@link JsonObject} records and
@@ -33,6 +35,7 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, JsonObject
     private static final Splitter SPLITTER_ON_COMMA = Splitter.on(',').trimResults().omitEmptyStrings();
     private Schema schema;
     private List<String> ignoreFields;
+    private static final Logger LOGGER = LoggerFactory.getLogger(ComplexJsonConverter.class);
 
     public ToAvroConverterBase<SI, JsonObject> init(WorkUnitState workUnit) {
         super.init(workUnit);
@@ -56,12 +59,15 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, JsonObject
     @Override
     public Iterable<GenericRecord> convertRecord(Schema outputSchema, JsonObject inputRecord, WorkUnitState workUnit)
             throws DataConversionException {
+        LOGGER.info("Output Schema --> " + outputSchema);
         GenericRecord avroRecord = convertNestedRecord(outputSchema, inputRecord, workUnit, this.ignoreFields);
         return new SingleRecordIterable<GenericRecord>(avroRecord);
     }
 
     public static GenericRecord convertNestedRecord(Schema outputSchema, JsonObject inputRecord, WorkUnitState workUnit,
                                                     List<String> ignoreFields) throws DataConversionException {
+        LOGGER.info("Output Schema : " + outputSchema);
+
         GenericRecord avroRecord = new GenericData.Record(outputSchema);
 
         for (Schema.Field field : outputSchema.getFields()) {
@@ -79,6 +85,7 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, JsonObject
             }
 
             if (type.equals(Schema.Type.RECORD)) {
+                LOGGER.info("Parsing " + field.name() + " field......");
                 if (nullable || inputRecord.get(field.name()).isJsonNull()) {
                     avroRecord.put(field.name(), null);
                 } else {
