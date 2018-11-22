@@ -84,7 +84,9 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, JsonObject
                 throw new DataConversionException("Field missing from record: " + field.name());
             }
 
-            if (type.equals(Schema.Type.RECORD)) {
+            avroRecord.put(field.name(), inputRecord.get(field.name()));
+
+            /*if (type.equals(Schema.Type.RECORD)) {
                 LOGGER.info("Parsing " + field.name() + " field......");
                 if (nullable || inputRecord.get(field.name()).isJsonNull()) {
                     avroRecord.put(field.name(), null);
@@ -94,7 +96,7 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, JsonObject
                 }
             } else {
                 avroRecord.put(field.name(), inputRecord.get(field.name()));
-            }
+            }*/
         }
         return avroRecord;
     }
