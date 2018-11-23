@@ -78,7 +78,10 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
             boolean nullable = false;
             Schema schema = field.schema();
 
+            LOGGER.info("Field --> " + field.name() + ", Type --> " + type);
             if (type.equals(Schema.Type.ARRAY)) {
+                LOGGER.info("---------------- START array -----------------");
+
                 String arraySchema = schema.toString();
                 int second_colon = arraySchema.indexOf(":", arraySchema.indexOf(":") + 1);
                 arraySchema = arraySchema.substring(second_colon+1, arraySchema.length()-1);
@@ -95,6 +98,8 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
                     JsonObject insideRecord = jsonElement.getAsJsonObject();
                     avroRecord.put(field.name(), convertNestedRecord(new_schema, insideRecord, workUnit, ignoreFields));
                 }
+
+                LOGGER.info("---------------- END Array -----------------");
             }
 
             if (type.equals(Schema.Type.RECORD)) {
