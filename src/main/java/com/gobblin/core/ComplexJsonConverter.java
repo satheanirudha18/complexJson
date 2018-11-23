@@ -6,6 +6,8 @@ package com.gobblin.core;
 
 import java.util.List;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -30,14 +32,15 @@ import org.slf4j.LoggerFactory;
  * converts them to {@link GenericRecord} using the schema
  */
 
-public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, JsonObject> {
+public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, Object> {
 
     private static final Splitter SPLITTER_ON_COMMA = Splitter.on(',').trimResults().omitEmptyStrings();
     private Schema schema;
     private List<String> ignoreFields;
     private static final Logger LOGGER = LoggerFactory.getLogger(ComplexJsonConverter.class);
+    private static final Gson GSON = new Gson();
 
-    public ToAvroConverterBase<SI, JsonObject> init(WorkUnitState workUnit) {
+    public ToAvroConverterBase<SI, Object> init(WorkUnitState workUnit) {
         super.init(workUnit);
         this.ignoreFields = SPLITTER_ON_COMMA.splitToList(workUnit.getProp(ConfigurationKeys.CONVERTER_IGNORE_FIELDS, ""));
         return this;
@@ -57,10 +60,11 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, JsonObject
      * Take in {@link JsonObject} input records and convert them to {@link GenericRecord} using outputSchema
      */
     @Override
-    public Iterable<GenericRecord> convertRecord(Schema outputSchema, JsonObject inputRecord, WorkUnitState workUnit)
+    public Iterable<GenericRecord> convertRecord(Schema outputSchema, Object inputRecord, WorkUnitState workUnit)
             throws DataConversionException {
         LOGGER.info("Output Schema --> " + outputSchema);
-        GenericRecord avroRecord = convertNestedRecord(outputSchema, inputRecord, workUnit, this.ignoreFields);
+        JsonObject inputs = GSON.fromJson((JsonElement) inputRecord, JsonObject.class);
+        GenericRecord avroRecord = convertNestedRecord(outputSchema, inputs, workUnit, this.ignoreFields);
         return new SingleRecordIterable<GenericRecord>(avroRecord);
     }
 
@@ -84,9 +88,7 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, JsonObject
                 throw new DataConversionException("Field missing from record: " + field.name());
             }
 
-            avroRecord.put(field.name(), inputRecord.get(field.name()));
-
-            /*if (type.equals(Schema.Type.RECORD)) {
+            if (type.equals(Schema.Type.RECORD)) {
                 LOGGER.info("Parsing " + field.name() + " field......");
                 if (nullable || inputRecord.get(field.name()).isJsonNull()) {
                     avroRecord.put(field.name(), null);
@@ -96,7 +98,7 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, JsonObject
                 }
             } else {
                 avroRecord.put(field.name(), inputRecord.get(field.name()));
-            }*/
+            }
         }
         return avroRecord;
     }
