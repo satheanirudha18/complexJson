@@ -62,7 +62,6 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
     @Override
     public Iterable<GenericRecord> convertRecord(Schema outputSchema, String inputRecord, WorkUnitState workUnit)
             throws DataConversionException {
-        LOGGER.info("Output Schema --> " + outputSchema);
         JsonObject inputs = GSON.fromJson(inputRecord, JsonObject.class);
         GenericRecord avroRecord = convertNestedRecord(outputSchema, inputs, workUnit, this.ignoreFields);
         return new SingleRecordIterable<GenericRecord>(avroRecord);
@@ -70,8 +69,6 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
 
     public static GenericRecord convertNestedRecord(Schema outputSchema, JsonObject inputRecord, WorkUnitState workUnit,
                                                     List<String> ignoreFields) throws DataConversionException {
-        LOGGER.info("Output Schema : " + outputSchema);
-
         GenericRecord avroRecord = new GenericData.Record(outputSchema);
 
         for (Schema.Field field : outputSchema.getFields()) {
@@ -84,10 +81,6 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
             boolean nullable = false;
             Schema schema = field.schema();
 
-            if (inputRecord.get(field.name()) == null) {
-                throw new DataConversionException("Field missing from record: " + field.name());
-            }
-
             if (type.equals(Schema.Type.RECORD)) {
                 LOGGER.info("Parsing " + field.name() + " field......");
                 if (nullable || inputRecord.get(field.name()).isJsonNull()) {
@@ -97,6 +90,7 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
                             convertNestedRecord(schema, inputRecord.get(field.name()).getAsJsonObject(), workUnit, ignoreFields));
                 }
             } else {
+                LOGGER.info("Field --> " + field.name() + ", Value --> " + inputRecord.get(field.name()));
                 avroRecord.put(field.name(), inputRecord.get(field.name()));
             }
         }
