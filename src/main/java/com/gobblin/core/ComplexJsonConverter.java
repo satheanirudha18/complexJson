@@ -6,8 +6,7 @@ package com.gobblin.core;
 
 import java.util.List;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
+import com.google.gson.*;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -20,8 +19,6 @@ import org.apache.gobblin.converter.SingleRecordIterable;
 import org.apache.gobblin.converter.ToAvroConverterBase;
 
 import com.google.common.base.Preconditions;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonNull;
 import com.google.common.base.Splitter;
 import org.apache.gobblin.converter.avro.JsonElementConversionWithAvroSchemaFactory;
 import org.slf4j.Logger;
@@ -80,6 +77,26 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
             Schema.Type type = field.schema().getType();
             boolean nullable = false;
             Schema schema = field.schema();
+
+            if (type.equals(Schema.Type.ARRAY)) {
+                String arraySchema = schema.toString();
+                int second_colon = arraySchema.indexOf(":", arraySchema.indexOf(":") + 1);
+                arraySchema = arraySchema.substring(second_colon+1, arraySchema.length()-1);
+                Schema new_schema = new Schema.Parser().parse(arraySchema);
+
+                JsonObject jsonObject = inputRecord.get(field.name()).getAsJsonObject();
+
+                LOGGER.info("Nested field --> " + jsonObject.entrySet().toString());
+                String partitionArray = "[employee]";
+
+                String arrayColumn = partitionArray.substring(1, partitionArray.length()-1);
+                JsonArray jsonArray = jsonObject.getAsJsonArray(arrayColumn);
+
+                for (JsonElement jsonElement : jsonArray) {
+                    JsonObject insideRecord = jsonElement.getAsJsonObject();
+                    avroRecord.put(field.name(), convertNestedRecord(new_schema, insideRecord, workUnit, ignoreFields));
+                }
+            }
 
             if (type.equals(Schema.Type.RECORD)) {
                 LOGGER.info("Parsing " + field.name() + " field......");
