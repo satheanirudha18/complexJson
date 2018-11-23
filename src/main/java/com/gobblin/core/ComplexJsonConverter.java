@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * converts them to {@link GenericRecord} using the schema
  */
 
-public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, Object> {
+public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
 
     private static final Splitter SPLITTER_ON_COMMA = Splitter.on(',').trimResults().omitEmptyStrings();
     private Schema schema;
@@ -40,7 +40,7 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, Object> {
     private static final Logger LOGGER = LoggerFactory.getLogger(ComplexJsonConverter.class);
     private static final Gson GSON = new Gson();
 
-    public ToAvroConverterBase<SI, Object> init(WorkUnitState workUnit) {
+    public ToAvroConverterBase<SI, String> init(WorkUnitState workUnit) {
         super.init(workUnit);
         this.ignoreFields = SPLITTER_ON_COMMA.splitToList(workUnit.getProp(ConfigurationKeys.CONVERTER_IGNORE_FIELDS, ""));
         return this;
@@ -60,10 +60,10 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, Object> {
      * Take in {@link JsonObject} input records and convert them to {@link GenericRecord} using outputSchema
      */
     @Override
-    public Iterable<GenericRecord> convertRecord(Schema outputSchema, Object inputRecord, WorkUnitState workUnit)
+    public Iterable<GenericRecord> convertRecord(Schema outputSchema, String inputRecord, WorkUnitState workUnit)
             throws DataConversionException {
         LOGGER.info("Output Schema --> " + outputSchema);
-        JsonObject inputs = GSON.fromJson((JsonElement) inputRecord, JsonObject.class);
+        JsonObject inputs = GSON.fromJson(inputRecord, JsonObject.class);
         GenericRecord avroRecord = convertNestedRecord(outputSchema, inputs, workUnit, this.ignoreFields);
         return new SingleRecordIterable<GenericRecord>(avroRecord);
     }
