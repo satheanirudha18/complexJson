@@ -90,10 +90,13 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
                             convertNestedRecord(schema, inputRecord.get(field.name()).getAsJsonObject(), workUnit, ignoreFields));
                 }
             } else {
-                LOGGER.info("Field --> " + field.name() + ", Value --> " + inputRecord.get(field.name()));
-                avroRecord.put(field.name(), inputRecord.get(field.name()));
+                LOGGER.info("Field --> " + field.name() + ", Value Type--> " + inputRecord.get(field.name()).getClass().getName());
+                String value = inputRecord.get(field.name()).getAsString();
+                avroRecord.put(field.name(), value);
+                LOGGER.info("Field --> " + field.name() + ", New Data Type --> " + value.getClass().getName());
             }
         }
+        LOGGER.info("Avro Records Data Type --> " + avroRecord.getClass().getName());
         return avroRecord;
     }
 }
