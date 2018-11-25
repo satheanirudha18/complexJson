@@ -4,7 +4,10 @@ package com.gobblin.core;
  * Created by Anirudha Sathe on 22/11/18.
  */
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Collection;
 
 import com.google.gson.*;
 import org.apache.avro.Schema;
@@ -61,7 +64,38 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
             throws DataConversionException {
         JsonObject inputs = GSON.fromJson(inputRecord, JsonObject.class);
         GenericRecord avroRecord = convertNestedRecord(outputSchema, inputs, workUnit, this.ignoreFields);
-        return new SingleRecordIterable<GenericRecord>(avroRecord);
+        LOGGER.info("Extracting Data type of the Generic Records.");
+        GenericRecord newAvroRecord = new GenericData.Record(outputSchema);
+
+        for (Schema.Field field : avroRecord.getSchema().getFields()){
+            LOGGER.info(field.name() + " --- " + avroRecord.get(field.name()).getClass().getName());
+        }
+
+        for (Schema.Field field : avroRecord.getSchema().getFields()) {
+
+            if (avroRecord.get(field.name()).getClass().getName().equalsIgnoreCase("java.lang.String")){
+                LOGGER.info("Data type of " + field.name() + " is " + avroRecord.get(field.name()).getClass().getName());
+                newAvroRecord.put(field.name(), avroRecord.get(field.name()));
+            }else {
+                //JsonObject jsonObject = GSON.fromJson(avroRecord.get(field.name()).toString(), JsonObject.class);
+                LOGGER.info("Data type of " + field.name() + " is " + avroRecord.get(field.name()).getClass().getName());
+                newAvroRecord.put(field.name(), avroRecord.get(field.name()).toString());
+            }
+
+        }
+
+        for (Schema.Field field : newAvroRecord.getSchema().getFields()) {
+            LOGGER.info(field.name() + " --- " + newAvroRecord.get(field.name()).getClass().getName());
+        }
+        return new SingleRecordIterable<GenericRecord>(newAvroRecord);
+    }
+
+    public static List<String> extractNestedRecord(Schema innerSchema, JsonObject inputRecord) throws DataConversionException {
+        List<String> returnRecord = new ArrayList<String>();
+        for (Schema.Field field : innerSchema.getFields()) {
+            returnRecord.add(inputRecord.get(field.name()).getAsString());
+        }
+        return returnRecord;
     }
 
     public static GenericRecord convertNestedRecord(Schema outputSchema, JsonObject inputRecord, WorkUnitState workUnit,
@@ -70,6 +104,7 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
 
         for (Schema.Field field : outputSchema.getFields()) {
 
+            LOGGER.info("Parsing " + field.name() + " field......");
             if (ignoreFields.contains(field.name())) {
                 continue;
             }
@@ -78,10 +113,9 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
             boolean nullable = false;
             Schema schema = field.schema();
 
-            LOGGER.info("Field --> " + field.name() + ", Type --> " + type);
             if (type.equals(Schema.Type.ARRAY)) {
                 LOGGER.info("---------------- START array -----------------");
-
+                List<List<String>> nestedList = new ArrayList<List<String>>();
                 String arraySchema = schema.toString();
                 int second_colon = arraySchema.indexOf(":", arraySchema.indexOf(":") + 1);
                 arraySchema = arraySchema.substring(second_colon+1, arraySchema.length()-1);
@@ -89,6 +123,7 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
 
                 JsonObject jsonObject = inputRecord.get(field.name()).getAsJsonObject();
 
+                //For now, hard coded
                 String partitionArray = "[employee]";
 
                 String arrayColumn = partitionArray.substring(1, partitionArray.length()-1);
@@ -96,14 +131,14 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
 
                 for (JsonElement jsonElement : jsonArray) {
                     JsonObject insideRecord = jsonElement.getAsJsonObject();
-                    avroRecord.put(field.name(), convertNestedRecord(new_schema, insideRecord, workUnit, ignoreFields));
+                    nestedList.add(extractNestedRecord(new_schema, insideRecord));
                 }
-
+                avroRecord.put(field.name(), nestedList);
                 LOGGER.info("---------------- END Array -----------------");
+                continue;
             }
 
             if (type.equals(Schema.Type.RECORD)) {
-                LOGGER.info("Parsing " + field.name() + " field......");
                 if (nullable || inputRecord.get(field.name()).isJsonNull()) {
                     avroRecord.put(field.name(), null);
                 } else {
@@ -111,6 +146,7 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
                             convertNestedRecord(schema, inputRecord.get(field.name()).getAsJsonObject(), workUnit, ignoreFields));
                 }
             } else {
+                LOGGER.info("Parsed " + field.name() + " field......");
                 avroRecord.put(field.name(), inputRecord.get(field.name()).getAsString());
             }
         }
