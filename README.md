@@ -87,11 +87,11 @@
 --conf /opt/gobblin/distributions/jobs/complexJson.pull</i>
   <br><br>
   Execute the following command to the gobblin job: <br>
-  <i>bin/gobblin-mapreduce.sh stop \
+  <i>bin/gobblin-mapreduce.sh stop
 --conf /opt/gobblin/distributions/jobs/complexJson.pull</i>
   <br><br>
   Execute the following command to view the status of the gobblin job: <br>
-  <i>bin/gobblin-mapreduce.sh status \
+  <i>bin/gobblin-mapreduce.sh status
 --conf /opt/gobblin/distributions/jobs/complexJson.pull</i>
 </p>
 
