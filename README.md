@@ -94,3 +94,7 @@
   <i>bin/gobblin-mapreduce.sh status \
 --conf /opt/gobblin/distributions/jobs/complexJson.pull</i>
 </p>
+
+<p>
+  Hope it was helful. Have a great day.
+</p>
