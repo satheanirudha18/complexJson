@@ -13,6 +13,7 @@ import com.google.gson.*;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.gobblin.configuration.ConfigurationKeys;
 import org.apache.gobblin.configuration.WorkUnitState;
 import org.apache.gobblin.converter.Converter;
@@ -23,9 +24,12 @@ import org.apache.gobblin.converter.ToAvroConverterBase;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import org.apache.gobblin.converter.avro.JsonElementConversionWithAvroSchemaFactory;
+import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tech.allegro.schema.json2avro.converter.JsonAvroConverter;
+
+import org.json.XML;
 
 /**
  * {@link Converter} that takes an Avro schema from config and corresponding {@link JsonObject} records and
@@ -39,6 +43,7 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
     private List<String> ignoreFields;
     private static final Logger LOGGER = LoggerFactory.getLogger(ComplexJsonConverter.class);
     private static final Gson GSON = new Gson();
+    public static final String EVENT_SOURCE_TYPE = "event.source.type";
 
     public ToAvroConverterBase<SI, String> init(WorkUnitState workUnit) {
         super.init(workUnit);
@@ -62,94 +67,32 @@ public class ComplexJsonConverter<SI> extends ToAvroConverterBase<SI, String> {
     @Override
     public Iterable<GenericRecord> convertRecord(Schema outputSchema, String inputRecord, WorkUnitState workUnit)
             throws DataConversionException {
-        JsonObject inputs = GSON.fromJson(inputRecord, JsonObject.class);
-        GenericRecord avroRecord = convertNestedRecord(outputSchema, inputs, workUnit, this.ignoreFields);
-        LOGGER.info("Extracting Data type of the Generic Records.");
-        GenericRecord newAvroRecord = new GenericData.Record(outputSchema);
-
-        for (Schema.Field field : avroRecord.getSchema().getFields()){
-            LOGGER.info(field.name() + " --- " + avroRecord.get(field.name()).getClass().getName());
-        }
-
-        for (Schema.Field field : avroRecord.getSchema().getFields()) {
-
-            if (avroRecord.get(field.name()).getClass().getName().equalsIgnoreCase("java.lang.String")){
-                LOGGER.info("Data type of " + field.name() + " is " + avroRecord.get(field.name()).getClass().getName());
-                newAvroRecord.put(field.name(), avroRecord.get(field.name()));
-            }else {
-                //JsonObject jsonObject = GSON.fromJson(avroRecord.get(field.name()).toString(), JsonObject.class);
-                LOGGER.info("Data type of " + field.name() + " is " + avroRecord.get(field.name()).getClass().getName());
-                newAvroRecord.put(field.name(), avroRecord.get(field.name()).toString());
+        LOGGER.info("Converting input records into GenericRecord according to the schema provided.");
+        if (readProp(EVENT_SOURCE_TYPE, workUnit).equalsIgnoreCase("xml")){
+            if (inputRecord.contains("&")){
+                inputRecord = inputRecord.replace("&", "&amp;");
             }
-
+            try{
+                inputRecord = XML.toJSONObject(inputRecord).toString();
+            }catch (JSONException je) {
+                throw new DataConversionException("Exception occurred while converting XML to JSON --> " + je);
+            }
+            return new SingleRecordIterable<GenericRecord>(new JsonAvroConverter().convertToGenericDataRecord(XML.toJSONObject(inputRecord).toString().getBytes(),outputSchema));
+        }else{
+            return new SingleRecordIterable<GenericRecord>(new JsonAvroConverter().convertToGenericDataRecord(inputRecord.getBytes(),outputSchema));
         }
-
-        for (Schema.Field field : newAvroRecord.getSchema().getFields()) {
-            LOGGER.info(field.name() + " --- " + newAvroRecord.get(field.name()).getClass().getName());
-        }
-        return new SingleRecordIterable<GenericRecord>(newAvroRecord);
     }
 
-    public static List<String> extractNestedRecord(Schema innerSchema, JsonObject inputRecord) throws DataConversionException {
-        List<String> returnRecord = new ArrayList<String>();
-        for (Schema.Field field : innerSchema.getFields()) {
-            returnRecord.add(inputRecord.get(field.name()).getAsString());
+    private static String readProp(String key, WorkUnitState workUnitState) {
+        LOGGER.info("Key --> " + key);
+        String value = workUnitState.getWorkunit().getProp(key);
+        if (StringUtils.isBlank(value)) {
+            value = workUnitState.getProp(key);
         }
-        return returnRecord;
-    }
-
-    public static GenericRecord convertNestedRecord(Schema outputSchema, JsonObject inputRecord, WorkUnitState workUnit,
-                                                    List<String> ignoreFields) throws DataConversionException {
-        GenericRecord avroRecord = new GenericData.Record(outputSchema);
-
-        for (Schema.Field field : outputSchema.getFields()) {
-
-            LOGGER.info("Parsing " + field.name() + " field......");
-            if (ignoreFields.contains(field.name())) {
-                continue;
-            }
-
-            Schema.Type type = field.schema().getType();
-            boolean nullable = false;
-            Schema schema = field.schema();
-
-            if (type.equals(Schema.Type.ARRAY)) {
-                LOGGER.info("---------------- START array -----------------");
-                List<List<String>> nestedList = new ArrayList<List<String>>();
-                String arraySchema = schema.toString();
-                int second_colon = arraySchema.indexOf(":", arraySchema.indexOf(":") + 1);
-                arraySchema = arraySchema.substring(second_colon+1, arraySchema.length()-1);
-                Schema new_schema = new Schema.Parser().parse(arraySchema);
-
-                JsonObject jsonObject = inputRecord.get(field.name()).getAsJsonObject();
-
-                //For now, hard coded
-                String partitionArray = "[employee]";
-
-                String arrayColumn = partitionArray.substring(1, partitionArray.length()-1);
-                JsonArray jsonArray = jsonObject.getAsJsonArray(arrayColumn);
-
-                for (JsonElement jsonElement : jsonArray) {
-                    JsonObject insideRecord = jsonElement.getAsJsonObject();
-                    nestedList.add(extractNestedRecord(new_schema, insideRecord));
-                }
-                avroRecord.put(field.name(), nestedList);
-                LOGGER.info("---------------- END Array -----------------");
-                continue;
-            }
-
-            if (type.equals(Schema.Type.RECORD)) {
-                if (nullable || inputRecord.get(field.name()).isJsonNull()) {
-                    avroRecord.put(field.name(), null);
-                } else {
-                    avroRecord.put(field.name(),
-                            convertNestedRecord(schema, inputRecord.get(field.name()).getAsJsonObject(), workUnit, ignoreFields));
-                }
-            } else {
-                LOGGER.info("Parsed " + field.name() + " field......");
-                avroRecord.put(field.name(), inputRecord.get(field.name()).getAsString());
-            }
+        if (StringUtils.isBlank(value)) {
+            value = workUnitState.getJobState().getProp(key);
         }
-        return avroRecord;
+        LOGGER.info(key + " --> " + value);
+        return value;
     }
 }

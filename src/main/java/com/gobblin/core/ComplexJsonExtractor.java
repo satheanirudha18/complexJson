@@ -15,6 +15,10 @@ import org.apache.commons.vfs2.UserAuthenticator;
 import org.apache.commons.vfs2.VFS;
 import org.apache.commons.vfs2.auth.StaticUserAuthenticator;
 import org.apache.commons.vfs2.impl.DefaultFileSystemConfigBuilder;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,35 +45,59 @@ public class ComplexJsonExtractor implements Extractor<String, String>{
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ComplexJsonExtractor.class);
 
-    private static final String SOURCE_FILE_KEY = "source.file";
+    private static final String SOURCE_PAGE_KEY = "source.file";
 
     private final WorkUnitState workUnitState;
-    private final FileObject fileObject;
-    private final BufferedReader bufferedReader;
+
+    private BufferedReader bufferedReader;
+
+    private final HttpClient client;
+
+    private final HttpGet request;
+
+    private final HttpResponse response;
+
     private final Closer closer = Closer.create();
 
-    public ComplexJsonExtractor(WorkUnitState workUnitState) throws FileSystemException {
+    public ComplexJsonExtractor(WorkUnitState workUnitState) throws FileSystemException, IOException {
         this.workUnitState = workUnitState;
 
-        // Resolve the file to pull
-        if (workUnitState.getPropAsBoolean(ConfigurationKeys.SOURCE_CONN_USE_AUTHENTICATION, false)) {
-            // Add authentication credential if authentication is needed
+        /*
+        Custom logic for the extraction of data starts
+         */
+
+        this.client = new DefaultHttpClient();
+
+        String url= workUnitState.getProp(SOURCE_PAGE_KEY);
+
+        if (!workUnitState.getPropAsBoolean(ConfigurationKeys.SOURCE_CONN_USE_AUTHENTICATION, false)) {
             UserAuthenticator auth =
                     new StaticUserAuthenticator(workUnitState.getProp(ConfigurationKeys.SOURCE_CONN_DOMAIN, ""),
                             workUnitState.getProp(ConfigurationKeys.SOURCE_CONN_USERNAME), PasswordManager.getInstance(workUnitState)
                             .readPassword(workUnitState.getProp(ConfigurationKeys.SOURCE_CONN_PASSWORD)));
-            FileSystemOptions opts = new FileSystemOptions();
-            DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth);
-            this.fileObject = VFS.getManager().resolveFile(workUnitState.getProp(SOURCE_FILE_KEY), opts);
-        } else {
-            this.fileObject = VFS.getManager().resolveFile(workUnitState.getProp(SOURCE_FILE_KEY));
+
+            this.request = new HttpGet(url);
+        }else{
+            this.request = new HttpGet(url);
         }
 
-        // Open the file for reading
-        LOGGER.info("Opening file " + this.fileObject.getURL().toString());
-        this.bufferedReader =
-                this.closer.register(new BufferedReader(new InputStreamReader(this.fileObject.getContent().getInputStream(),
-                        ConfigurationKeys.DEFAULT_CHARSET_ENCODING)));
+        this.response = this.client.execute(this.request);
+
+        LOGGER.info("Extracting data from the URL provided.");
+
+        if (this.response.getStatusLine().getStatusCode() == 200) {
+            LOGGER.info("Response code returned - " + this.response.getStatusLine().getStatusCode());
+            this.bufferedReader = this.closer.register(new BufferedReader(new InputStreamReader(this.response.getEntity().getContent(), ConfigurationKeys.DEFAULT_CHARSET_ENCODING)));
+        }else{
+            if (response.getStatusLine().getStatusCode() == 404){
+                LOGGER.error("Error : " + response.getStatusLine().getStatusCode() + " Page not found error.");
+            }else if (response.getStatusLine().getStatusCode() == 500) {
+                LOGGER.error("Error : " + response.getStatusLine().getStatusCode() + " Internal Server error.");
+            }else {
+                LOGGER.error("Error : " + response.getStatusLine().getStatusCode() + " Unidentified.");
+            }
+        }
+
     }
 
     public String getSchema() {
@@ -97,11 +125,6 @@ public class ComplexJsonExtractor implements Extractor<String, String>{
         } catch (IOException ioe) {
             LOGGER.error("Failed to close the input stream", ioe);
         }
-
-        try {
-            this.fileObject.close();
-        } catch (IOException ioe) {
-            LOGGER.error("Failed to close the file object", ioe);
-        }
+        this.request.abort();
     }
 }

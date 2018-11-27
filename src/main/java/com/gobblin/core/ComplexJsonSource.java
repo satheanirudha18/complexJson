@@ -17,6 +17,8 @@ import org.apache.gobblin.source.Source;
 import org.apache.gobblin.source.extractor.Extractor;
 import org.apache.gobblin.source.workunit.Extract;
 import org.apache.gobblin.source.workunit.WorkUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -31,6 +33,8 @@ import org.apache.gobblin.source.workunit.WorkUnit;
  */
 public class ComplexJsonSource implements Source<String, String> {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ComplexJsonExtractor.class);
+
     public static final String SOURCE_FILE_KEY = "source.file";
 
     public List<WorkUnit> getWorkunits(SourceState state) {
@@ -40,9 +44,13 @@ public class ComplexJsonSource implements Source<String, String> {
             return workUnits;
         }
 
+        LOGGER.info("Found Extract Namespace Key - " + state.getProp(ConfigurationKeys.EXTRACT_NAMESPACE_NAME_KEY));
+
+        LOGGER.info("Found Extract Table Name Key - " + state.getProp(ConfigurationKeys.EXTRACT_TABLE_NAME_KEY));
+
         // Create a single snapshot-type extract for all files
         Extract extract = new Extract(Extract.TableType.SNAPSHOT_ONLY,
-                state.getProp(ConfigurationKeys.EXTRACT_NAMESPACE_NAME_KEY, "ComplexJson"), "ComplexJsonTable");
+                state.getProp(ConfigurationKeys.EXTRACT_NAMESPACE_NAME_KEY, "ComplexJson"), ConfigurationKeys.EXTRACT_TABLE_NAME_KEY);
 
         String filesToPull = state.getProp(ConfigurationKeys.SOURCE_FILEBASED_FILES_TO_PULL);
         for (String file : Splitter.on(',').omitEmptyStrings().split(filesToPull)) {

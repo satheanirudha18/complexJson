@@ -1,0 +1,80 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+#########################################################################
+###################### Demo job configuration file ######################
+#########################################################################
+
+job.name=complexJson
+job.group=NestedJson
+job.description=A Gobblin job for complex json ingestion
+
+source.class=com.gobblin.core.ComplexJsonSource
+converter.classes=com.gobblin.core.ComplexJsonConverter
+
+# Extractor configuration properties
+extract.namespace=EventfulExtractor
+extract.table.name=Eventful
+
+# source type for the Event (eg., xml or json)
+event.source.type=json
+
+# source configuration properties
+# comma-separated list of file URIs (supporting different schemes, e.g., file://, ftp://, sftp://, http://, etc)
+# file based URI
+# source.filebased.files.to.pull=file:///opt/gobblin/distributions/resources/complexJson.json
+
+# http based URI
+source.filebased.files.to.pull=http://api.eventful.com/json/events/search?&location=San+Diego&app_key=MdMJcrMXmcS5bNdj&keywords=music
+
+# whether to use authentication or not (default is false)
+source.conn.use.authentication=
+# credential for authentication purpose (optional)
+source.conn.domain=
+source.conn.username=
+source.conn.password=
+
+# converter avro schema key
+converter.avroSchema={"type": "record","name": "myschema","fields": [{"name": "last_item","type": ["null","string"]},{"name": "total_items","type": ["null","string"]},{"name": "first_item","type": ["null","string"]},{"name": "page_number","type": ["null","string"]},{"name": "page_size","type": ["null","string"]},{"name": "page_items","type": ["null","string"]},{"name": "search_time","type": ["null","string"]},{"name": "page_count","type": ["null","string"]},{"name": "events","type": {"type": "record","name": "events","fields": [{"name": "event","type": {"type": "array","items": {"type": "record","name": "events","namespace": "event","fields": [{"name": "watching_count","type": ["null","string"]},{"name": "olson_path","type": ["null","string"]},{"name": "calendar_count","type": ["null","string"]},{"name": "comment_count","type": ["null","string"]},{"name": "region_abbr","type": ["null","string"]},{"name": "postal_code","type": ["string","null"]},{"name": "going_count","type": ["null","string"]},{"name": "all_day","type": ["null","string"]},{"name": "latitude","type": ["null","string"]},{"name": "groups","type": ["null","string"]},{"name": "url","type": ["null","string"]},{"name": "id","type": ["null","string"]},{"name": "privacy","type": ["null","string"]},{"name": "city_name","type": ["null","string"]},{"name": "link_count","type": ["null","string"]},{"name": "longitude","type": ["null","string"]},{"name": "country_name","type": ["null","string"]},{"name": "country_abbr","type": ["null","string"]},{"name": "region_name","type": ["null","string"]},{"name": "start_time","type": ["null","string"]},{"name": "tz_id","type": ["null","string"]},{"name": "description","type": ["null","string"]},{"name": "modified","type": ["null","string"]},{"name": "venue_display","type": ["null","string"]},{"name": "tz_country","type": ["null","string"]},{"name": "performers","type": [{"type": "record","name": "events","namespace": "performers.event","fields": [{"name": "performer","type": {"type": "record","name": "events","namespace": "performer.performers.event","fields": [{"name": "creator","type": ["null","string"]},{"name": "linker","type": ["null","string"]},{"name": "name","type": ["null","string"]},{"name": "url","type": ["null","string"]},{"name": "id","type": ["null","string"]},{"name": "short_bio","type": ["null","string"]}]}}]},"null"]},{"name": "title","type": ["null","string"]},{"name": "venue_address","type": ["null","string"]},{"name": "geocode_type","type": ["null","string"]},{"name": "tz_olson_path","type": ["null","string"]},{"name": "recur_string","type": ["null","string"]},{"name": "calendars","type": ["null","string"]},{"name": "owner","type": ["null","string"]},{"name": "going","type": ["null","string"]},{"name": "country_abbr2","type": ["null","string"]},{"name": "image","type": [{"type": "record","name": "events","namespace": "image.event","fields": [{"name": "small","type": {"type": "record","name": "events","namespace": "small.image.event","fields": [{"name": "width","type": ["null","string"]},{"name": "url","type": ["null","string"]},{"name": "height","type": ["null","string"]}]}},{"name": "width","type": ["null","string"]},{"name": "caption","type": ["null","string"]},{"name": "medium","type": {"type": "record","name": "events","namespace": "medium.image.event","fields": [{"name": "width","type": ["null","string"]},{"name": "url","type": ["null","string"]},{"name": "height","type": ["null","string"]}]}},{"name": "url","type": ["null","string"]},{"name": "thumb","type": {"type": "record","name": "events","namespace": "thumb.image.event","fields": [{"name": "width","type": ["null","string"]},{"name": "url","type": ["null","string"]},{"name": "height","type": ["null","string"]}]}},{"name": "height","type": ["null","string"]}]},"null"]},{"name": "created","type": ["null","string"]},{"name": "venue_id","type": ["null","string"]},{"name": "tz_city","type": ["null","string"]},{"name": "stop_time","type": ["null","string"]},{"name": "venue_name","type": ["null","string"]},{"name": "venue_url","type": ["null","string"]}]}}}]}}]}
+converter.ignoreFields=
+
+# quality checker configuration properties
+qualitychecker.task.policies=org.apache.gobblin.policies.count.RowCountPolicy,org.apache.gobblin.policies.schema.SchemaCompatibilityPolicy
+qualitychecker.task.policy.types=OPTIONAL,OPTIONAL
+qualitychecker.row.policies=org.apache.gobblin.policies.schema.SchemaRowCheckPolicy
+qualitychecker.row.policy.types=OPTIONAL
+qualitychecker.row.err.file=test/jobOutput
+
+# data publisher class to be used
+data.publisher.type=org.apache.gobblin.publisher.BaseDataPublisher
+
+# writer configuration properties
+writer.output.format=AVRO
+writer.fs.uri=file:///
+
+mr.job.root.dir=file:///root/gobblin/complexJsonDir/working
+state.store.dir=file:///root/gobblin/complexJsonDir/state-store
+task.data.root.dir=file:///root/gobblin/complexJsonDir/task-data
+writer.staging.dir=file:///root/gobblin/complexJsonDir/task-staging
+writer.output.dir=file:///root/gobblin/complexJsonDir/task-output
+data.publisher.final.dir=file:///root/gobblin/complexJsonDir
+
+# Task properties
+task.maxretries=2
+
+# Fork Properties
+fork.record.queue.capacity=1
